@@ -48,6 +48,7 @@ cc_library(
         "//mediapipe/framework/port:opencv_video",
         "//mediapipe/framework/port:parse_text_proto",
         "//mediapipe/framework/port:status",
+        "//mediapipe/graphs/hand_tracking:multi_hand_desktop_tflite_calculators",
     ],
 )
 

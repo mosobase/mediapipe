@@ -15,6 +15,8 @@
 // An example of sending OpenCV webcam frames into a MediaPipe graph.
 #include <cstdlib>
 
+#include "mediapipe/framework/formats/landmark.pb.h"
+
 #include "mediapipe/framework/calculator_framework.h"
 #include "mediapipe/framework/formats/image_frame.h"
 #include "mediapipe/framework/formats/image_frame_opencv.h"
@@ -78,6 +80,11 @@ DEFINE_string(output_video_path, "",
   LOG(INFO) << "Start running the calculator graph.";
   ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller poller,
                    graph.AddOutputStreamPoller(kOutputStream));
+
+ ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller multi_hand_landmarks_poller,
+                  graph.AddOutputStreamPoller("multi_hand_landmarks"));
+
+
   MP_RETURN_IF_ERROR(graph.StartRun({}));
 
   LOG(INFO) << "Start grabbing and processing frames.";
@@ -111,6 +118,26 @@ DEFINE_string(output_video_path, "",
     mediapipe::Packet packet;
     if (!poller.Next(&packet)) break;
     auto& output_frame = packet.Get<mediapipe::ImageFrame>();
+
+    mediapipe::Packet multi_hand_landmarks_packet;
+    if (!multi_hand_landmarks_poller.Next(&multi_hand_landmarks_packet)) break;
+    const auto& multi_hand_landmarks =
+        multi_hand_landmarks_packet.Get<
+            std::vector<mediapipe::NormalizedLandmarkList>>();
+
+    LOG(INFO) << "#Multi Hand landmarks: " << multi_hand_landmarks.size();
+    int hand_id = 0;
+    for (const auto& single_hand_landmarks: multi_hand_landmarks) {
+       ++hand_id;
+       LOG(INFO) << "Hand [" << hand_id << "]:";
+       for (int i = 0; i < single_hand_landmarks.landmark_size(); ++i) {
+         const auto& landmark = single_hand_landmarks.landmark(i);
+         LOG(INFO) << "\tLandmark [" << i << "]: ("
+                   << landmark.x() << ", "
+                   << landmark.y() << ", "
+                   << landmark.z() << ")";
+       }
+     }
 
     // Convert back to opencv for display or saving.
     cv::Mat output_frame_mat = mediapipe::formats::MatView(&output_frame);
